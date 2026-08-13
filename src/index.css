@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#050505] text-white overflow-hidden;
+    background-image: 
+      linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+    background-position: center center;
+  }
+}
+
+@layer utilities {
+  .neon-text-cyan {
+    text-shadow: 0 0 5px rgba(0, 240, 255, 0.8), 0 0 15px rgba(0, 240, 255, 0.5);
+  }
+  .neon-text-magenta {
+    text-shadow: 0 0 5px rgba(255, 0, 127, 0.8), 0 0 15px rgba(255, 0, 127, 0.5);
+  }
+  .neon-border-cyan {
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.2);
+    border: 1px solid rgba(0, 240, 255, 0.5);
+  }
+  
+  /* Applying filter drop-shadows to the chess pieces inside the SVG */
+  div[data-boardid] svg image {
+    filter: drop-shadow(0px 4px 6px rgba(0, 240, 255, 0.4));
+    transition: all 0.2s ease;
+  }
+  div[data-boardid] svg image[data-piece^="b"] {
+    filter: drop-shadow(0px 4px 6px rgba(255, 0, 127, 0.4));
+  }
+}
