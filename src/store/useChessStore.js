@@ -106,14 +106,19 @@ export const useChessStore = create((set, get) => ({
 
         if (gameMode === 'ai' && game.turn() === 'b') {
           set({ isComputerThinking: true, status: 'CALCULATING' });
-          fetchComputerMove(game.fen(), difficulty).then(computerMove => {
-            if (computerMove) {
-              set({ isComputerThinking: false });
-              get().makeMove(computerMove);
-            } else {
-              set({ isComputerThinking: false, status: 'ERROR CALCULATING' });
+          (async () => {
+            try {
+              const computerMove = await fetchComputerMove(game.fen(), difficulty);
+              if (computerMove) {
+                set({ isComputerThinking: false });
+                get().makeMove(computerMove);
+              } else {
+                set({ isComputerThinking: false, status: 'SYSTEM ERROR: AI OFFLINE' });
+              }
+            } catch (error) {
+              set({ isComputerThinking: false, status: 'SYSTEM ERROR: AI OFFLINE' });
             }
-          });
+          })();
         }
         return true;
       }
