@@ -1,4 +1,4 @@
-// Procedural Web Audio Synthesizer
+// High-Fidelity Procedural Audio Engine
 let audioCtx = null;
 
 const initAudio = () => {
@@ -10,7 +10,7 @@ const initAudio = () => {
   }
 };
 
-const playTone = (freq, type, duration, vol = 0.1) => {
+const playTone = (freq, type, duration, vol = 0.1, decay = true) => {
   initAudio();
   if (!audioCtx) return;
   
@@ -20,9 +20,13 @@ const playTone = (freq, type, duration, vol = 0.1) => {
   osc.type = type;
   osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
   
-  // Envelope
   gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  if (decay) {
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  } else {
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime + duration - 0.05);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+  }
   
   osc.connect(gain);
   gain.connect(audioCtx.destination);
@@ -32,22 +36,25 @@ const playTone = (freq, type, duration, vol = 0.1) => {
 };
 
 export const playMoveSound = () => {
-  playTone(440, 'sine', 0.1, 0.05); // Clean digital blip
+  playTone(440, 'sine', 0.08, 0.05);
 };
 
 export const playCaptureSound = () => {
-  playTone(180, 'square', 0.2, 0.1); // Glitchy hit
-  setTimeout(() => playTone(320, 'sawtooth', 0.1, 0.05), 40);
+  playTone(150, 'square', 0.15, 0.08);
+  setTimeout(() => playTone(300, 'sawtooth', 0.1, 0.04), 50);
 };
 
 export const playCheckSound = () => {
-  playTone(550, 'triangle', 0.1, 0.1);
-  setTimeout(() => playTone(650, 'triangle', 0.1, 0.1), 100);
+  playTone(880, 'triangle', 0.1, 0.06);
+  setTimeout(() => playTone(880, 'triangle', 0.1, 0.06), 120);
 };
 
 export const playCheckmateSound = () => {
-  const freqs = [880, 660, 440, 220];
-  freqs.forEach((f, i) => {
-    setTimeout(() => playTone(f, 'sawtooth', 0.6, 0.1), i * 150);
+  [440, 330, 220].forEach((f, i) => {
+    setTimeout(() => playTone(f, 'sawtooth', 0.8, 0.1), i * 200);
   });
+};
+
+export const playTickSound = () => {
+  playTone(1200, 'sine', 0.02, 0.02);
 };

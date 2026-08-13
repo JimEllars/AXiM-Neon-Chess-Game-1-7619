@@ -1,22 +1,15 @@
 import { create } from 'zustand';
 import { Chess } from 'chess.js';
-import { playMoveSound, playCaptureSound, playCheckmateSound, playCheckSound } from '../utils/SynthAudioEngine';
-import { fetchComputerMove, submitMatchTelemetry } from '../services/engineApi';
+import { playMoveSound, playCaptureSound, playCheckmateSound, playCheckSound, playTickSound } from '../utils/SynthAudioEngine';
+import { fetchComputerMove } from '../services/engineApi';
 
-const getGameStatus = (chess) => {
-  if (chess.isCheckmate()) return 'CHECKMATE';
-  if (chess.isDraw()) return 'DRAW';
-  if (chess.isStalemate()) return 'STALEMATE';
-  if (chess.isThreefoldRepetition()) return 'REPETITION';
-  if (chess.isCheck()) return 'CHECK';
-  return 'ACTIVE';
-};
+const DEFAULT_TIME = 600; // 10 minutes
 
 export const useChessStore = create((set, get) => ({
   game: new Chess(),
   fen: 'start',
   status: 'SYSTEM ONLINE',
-  gameMode: 'ai', // 'ai' or 'local'
+  gameMode: 'ai',
   boardOrientation: 'white',
   isComputerThinking: false,
   moveHistory: [],
@@ -28,22 +21,45 @@ export const useChessStore = create((set, get) => ({
   optionSquares: {},
   lastMove: null,
   gameOver: null,
-  stats: {
-    moves: 0,
-    captures: 0,
-    checks: 0
+  
+  // Timer State
+  initialTime: DEFAULT_TIME,
+  timers: { w: DEFAULT_TIME, b: DEFAULT_TIME },
+  isPaused: true,
+  
+  // Stats
+  stats: { moves: 0, captures: 0, checks: 0 },
+
+  setInitialTime: (seconds) => {
+    set({ initialTime: seconds, timers: { w: seconds, b: seconds }, isPaused: true });
+    get().resetGame();
   },
 
-  setDifficulty: (level) => set({ difficulty: level }),
-  setPieceSet: (set) => set({ pieceSet: set }),
   setGameMode: (mode) => {
     get().resetGame();
     set({ gameMode: mode });
   },
+
+  setPieceSet: (set) => set({ pieceSet: set }),
+  setDifficulty: (level) => set({ difficulty: level }),
   setBoardOrientation: (side) => set({ boardOrientation: side }),
   toggleHints: () => set((state) => ({ showHints: !state, optionSquares: {} })),
   toggleSound: () => set((state) => ({ soundEnabled: !state })),
-  setOptionSquares: (squares) => set({ optionSquares: squares }),
+
+  tickTimers: () => {
+    const { game, timers, isPaused, gameOver } = get();
+    if (isPaused || gameOver) return;
+
+    const turn = game.turn();
+    const newTimers = { ...timers, [turn]: Math.max(0, timers[turn] - 1) };
+    
+    if (newTimers[turn] === 0) {
+      set({ gameOver: turn === 'w' ? 'BLACK WINS BY TIME' : 'WHITE WINS BY TIME' });
+    }
+    
+    set({ timers: newTimers });
+    if (get().soundEnabled && newTimers[turn] < 10) playTickSound();
+  },
 
   makeMove: async (moveObj) => {
     const { game, isComputerThinking, soundEnabled, stats, gameMode } = get();
@@ -59,20 +75,17 @@ export const useChessStore = create((set, get) => ({
           else playMoveSound();
         }
 
-        const currentStatus = getGameStatus(game);
-        const newCaptured = { ...get().capturedPieces };
-        if (move.captured) {
-          const color = move.color === 'w' ? 'b' : 'w';
-          newCaptured[color].push(move.captured);
-        }
-
         set({ 
           fen: game.fen(), 
-          status: currentStatus,
+          status: game.isCheck() ? 'CHECK DETECTED' : 'ACTIVE',
           moveHistory: game.history({ verbose: true }),
-          capturedPieces: newCaptured,
+          capturedPieces: {
+            w: move.color === 'b' && move.captured ? [...get().capturedPieces.w, move.captured] : get().capturedPieces.w,
+            b: move.color === 'w' && move.captured ? [...get().capturedPieces.b, move.captured] : get().capturedPieces.b
+          },
           optionSquares: {},
           lastMove: { from: move.from, to: move.to },
+          isPaused: false,
           stats: {
             ...stats,
             moves: stats.moves + 1,
@@ -82,10 +95,7 @@ export const useChessStore = create((set, get) => ({
         });
 
         if (game.isGameOver()) {
-          const result = game.isCheckmate() 
-            ? (game.turn() === 'b' ? (gameMode === 'ai' ? 'PLAYER DOMINANCE' : 'WHITE VICTORIOUS') : 'SYSTEM OVERTAKE') 
-            : 'STALEMATE';
-          set({ gameOver: result });
+          set({ gameOver: game.isCheckmate() ? 'CHECKMATE' : 'DRAW' });
           return true;
         }
 
@@ -94,56 +104,23 @@ export const useChessStore = create((set, get) => ({
         }
         return true;
       }
-    } catch (e) {
-      return false;
-    }
+    } catch (e) { return false; }
     return false;
   },
 
   triggerComputerMove: async () => {
     set({ isComputerThinking: true, status: 'CALCULATING' });
-    const { game, difficulty, soundEnabled, stats } = get();
-    
+    const { game, difficulty } = get();
     const computerMove = await fetchComputerMove(game, difficulty);
     
     if (computerMove) {
-      const move = game.move(computerMove);
-      
-      if (soundEnabled) {
-        if (game.isCheckmate()) playCheckmateSound();
-        else if (game.isCheck()) playCheckSound();
-        else if (move?.captured) playCaptureSound();
-        else playMoveSound();
-      }
-
-      const currentStatus = getGameStatus(game);
-      const newCaptured = { ...get().capturedPieces };
-      if (move?.captured) {
-        newCaptured['w'].push(move.captured);
-      }
-
-      set({ 
-        fen: game.fen(), 
-        status: currentStatus,
-        isComputerThinking: false,
-        moveHistory: game.history({ verbose: true }),
-        capturedPieces: newCaptured,
-        lastMove: { from: move.from, to: move.to },
-        stats: {
-          ...stats,
-          captures: move?.captured ? stats.captures + 1 : stats.captures,
-          checks: game.isCheck() ? stats.checks + 1 : stats.checks
-        }
-      });
-
-      if (game.isGameOver()) {
-        const result = game.isCheckmate() ? 'SYSTEM OVERTAKE' : 'STALEMATE';
-        set({ gameOver: result });
-      }
+      get().makeMove(computerMove);
+      set({ isComputerThinking: false });
     }
   },
 
   resetGame: () => {
+    const { initialTime } = get();
     set({ 
       game: new Chess(), 
       fen: 'start', 
@@ -154,6 +131,8 @@ export const useChessStore = create((set, get) => ({
       optionSquares: {},
       lastMove: null,
       gameOver: null,
+      timers: { w: initialTime, b: initialTime },
+      isPaused: true,
       stats: { moves: 0, captures: 0, checks: 0 }
     });
   }

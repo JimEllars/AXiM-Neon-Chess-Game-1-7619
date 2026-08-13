@@ -4,54 +4,50 @@
 
 @layer base {
   body {
-    @apply bg-[#030305] text-white overflow-x-hidden;
+    @apply bg-[#020204] text-white overflow-x-hidden selection:bg-cyan-500/30;
     background-image: 
-      linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
-    background-size: 50px 50px;
-    background-position: center center;
+      radial-gradient(circle at 50% 50%, rgba(10, 10, 20, 1) 0%, rgba(2, 2, 4, 1) 100%),
+      linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
   }
 }
 
 @layer utilities {
   .neon-text-cyan {
-    text-shadow: 0 0 10px rgba(0, 240, 255, 0.9), 0 0 25px rgba(0, 240, 255, 0.5);
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.4);
   }
   .neon-text-magenta {
-    text-shadow: 0 0 10px rgba(255, 0, 127, 0.9), 0 0 25px rgba(255, 0, 127, 0.5);
+    text-shadow: 0 0 8px rgba(255, 0, 127, 0.8), 0 0 20px rgba(255, 0, 127, 0.4);
   }
-  .neon-border-cyan {
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.2), inset 0 0 20px rgba(0, 240, 255, 0.1);
-    border: 1px solid rgba(0, 240, 255, 0.4);
-  }
-
-  /* Retro Theme Specifics */
-  .piece-set-retro div[data-boardid] {
-    filter: contrast(1.1) saturate(1.2);
-  }
-
+  
+  /* Retro Glitch Pieces */
   .piece-set-retro div[data-boardid] svg image {
-    filter: drop-shadow(0px 0px 15px rgba(0, 240, 255, 0.9)) brightness(1.5);
+    filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.7)) brightness(1.2) contrast(1.1);
+    animation: piece-glitch 8s infinite;
   }
-
+  
   .piece-set-retro div[data-boardid] svg image[data-piece^="b"] {
-    filter: drop-shadow(0px 0px 15px rgba(255, 0, 127, 0.9)) brightness(1.5);
+    filter: drop-shadow(0 0 10px rgba(255, 0, 127, 0.7)) brightness(1.2) contrast(1.1);
   }
 
-  /* Neon Set: Custom filters on SVG pieces */
-  .piece-set-neon div[data-boardid] svg image {
-    filter: drop-shadow(0px 2px 8px rgba(0, 240, 255, 0.6));
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .piece-set-neon div[data-boardid] svg image[data-piece^="b"] {
-    filter: drop-shadow(0px 2px 8px rgba(255, 0, 127, 0.6));
+  @keyframes piece-glitch {
+    0%, 95%, 100% { transform: translate(0, 0) scale(1); filter: brightness(1.2); }
+    96% { transform: translate(1px, -1px) scale(1.02); filter: hue-rotate(90deg) brightness(1.5); }
+    97% { transform: translate(-1px, 1px) scale(0.98); filter: hue-rotate(-90deg) brightness(0.8); }
+    98% { transform: translate(0, 0); }
   }
 
-  .piece-set-classic div[data-boardid] svg image {
-    filter: grayscale(0.5) contrast(1.2);
+  /* Board Highlights */
+  .react-chessboard-square-highlight {
+    background-color: rgba(0, 240, 255, 0.2) !important;
+    box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.3);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { 
+    background: linear-gradient(to bottom, #00f0ff, #ff007f); 
+    border-radius: 10px; 
   }
 }
-
-.custom-scrollbar::-webkit-scrollbar { width: 3px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.3); border-radius: 10px; }
