@@ -30,24 +30,23 @@ export const fetchComputerMove = async (fen, difficulty = 'normal') => {
   }
 };
 
-export const submitMatchTelemetry = async (pgn, result, matchType) => {
+export const submitMatchTelemetry = (pgn, result, matchType = 'pve_free') => {
   console.log(`[EDGE GATEWAY] Submitting Match: ${result}`);
-  try {
-    const response = await fetch(apiUrl('submit-match'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ pgn, result, matchType })
-    });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return true;
-  } catch (error) {
+  // Fire and forget, don't await or block
+  fetch(apiUrl('submit-match'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      pgn_string: pgn,
+      result,
+      match_type: matchType
+    })
+  }).catch(error => {
     console.error('[EDGE GATEWAY] Error submitting match telemetry:', error);
-    return false;
-  }
+  });
+
+  return true;
 };
