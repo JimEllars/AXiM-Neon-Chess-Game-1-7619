@@ -1,6 +1,11 @@
+import { Chess } from 'chess.js';
+import { getBestMove } from '../utils/ChessEngine';
+
+const apiUrl = (path) => `${import.meta.env.BASE_URL}api/v1/chess/${path}`;
+
 export const fetchComputerMove = async (fen, difficulty = 'normal') => {
   try {
-    const response = await fetch('/api/v1/chess/move', {
+    const response = await fetch(apiUrl('move'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -16,14 +21,19 @@ export const fetchComputerMove = async (fen, difficulty = 'normal') => {
     return data.bestMove;
   } catch (error) {
     console.error('[EDGE GATEWAY] Error fetching computer move:', error);
-    return null;
+    try {
+      return getBestMove(new Chess(fen), difficulty);
+    } catch (fallbackError) {
+      console.error('[LOCAL ENGINE] Error calculating computer move:', fallbackError);
+      return null;
+    }
   }
 };
 
 export const submitMatchTelemetry = async (pgn, result, matchType) => {
   console.log(`[EDGE GATEWAY] Submitting Match: ${result}`);
   try {
-    const response = await fetch('/api/v1/chess/submit-match', {
+    const response = await fetch(apiUrl('submit-match'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
