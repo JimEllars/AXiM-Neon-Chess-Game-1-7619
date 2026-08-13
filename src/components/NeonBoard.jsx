@@ -70,20 +70,24 @@ export default function NeonBoard() {
     colors.forEach(color => {
       pieces.forEach(p => {
         const Icon = IconMap[p];
-        mapping[`${color}${p}`] = ({ squareWidth }) => (
-          <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center justify-center h-full w-full">
-            <Icon 
-              style={{ 
-                width: squareWidth * (pieceSet === 'retro' ? 0.75 : 0.65), 
-                height: squareWidth * (pieceSet === 'retro' ? 0.75 : 0.65),
-                color: color === 'w' ? '#00f0ff' : '#ff007f',
-                filter: pieceSet === 'retro' 
+        mapping[`${color}${p}`] = ({ squareWidth, isDragging }) => {
+          const defaultFilter = pieceSet === 'retro'
                   ? `drop-shadow(0 0 12px ${color === 'w' ? 'rgba(0,240,255,1)' : 'rgba(255,0,127,1)'}) brightness(1.2)`
-                  : `drop-shadow(0 0 8px ${color === 'w' ? 'rgba(0,240,255,0.8)' : 'rgba(255,0,127,0.8)'})`
-              }} 
-            />
-          </motion.div>
-        );
+                  : `drop-shadow(0 0 8px ${color === 'w' ? 'rgba(0,240,255,0.8)' : 'rgba(255,0,127,0.8)'})`;
+
+          return (
+            <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center justify-center h-full w-full">
+              <Icon
+                style={{
+                  width: squareWidth * (pieceSet === 'retro' ? 0.75 : 0.65),
+                  height: squareWidth * (pieceSet === 'retro' ? 0.75 : 0.65),
+                  color: color === 'w' ? '#00f0ff' : '#ff007f',
+                  filter: isDragging ? 'none' : defaultFilter
+                }}
+              />
+            </motion.div>
+          );
+        };
       });
     });
     return mapping;
