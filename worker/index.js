@@ -48,9 +48,40 @@ const parseJson = async (request) => {
 };
 
 
+let wasmModule = null;
+let wasmInstance = null;
+
 async function loadStockfishWasm(env) {
-  // Placeholder for WebAssembly binary instantiation
-  return null;
+  if (wasmInstance) return wasmInstance;
+
+  if (!wasmModule) {
+    try {
+      const wasmResponse = await fetch('https://unpkg.com/stockfish.wasm@0.10.0/stockfish.wasm');
+      if (!wasmResponse.ok) {
+        throw new Error('Failed to fetch stockfish.wasm from CDN');
+      }
+      const wasmBuffer = await wasmResponse.arrayBuffer();
+      wasmModule = await WebAssembly.compile(wasmBuffer);
+    } catch (e) {
+      console.error('Failed to load WASM module', e);
+      return null;
+    }
+  }
+
+  const importObject = {
+    env: {
+      memory: new WebAssembly.Memory({ initial: 32, maximum: 256 })
+    }
+  };
+
+  try {
+    wasmInstance = await WebAssembly.instantiate(wasmModule, importObject);
+  } catch (e) {
+    console.error('WASM Instantiation failed', e);
+    wasmInstance = { error: true };
+  }
+
+  return wasmInstance;
 }
 
 const computerMove = async (request, env) => {
@@ -89,10 +120,23 @@ const computerMove = async (request, env) => {
       return json({ error: 'Invalid chess position or difficulty.' }, 400);
     }
 
-    await loadStockfishWasm(env);
+    const instance = await loadStockfishWasm(env);
+    let bestMove = null;
 
-    const game = new Chess(fen);
-    const bestMove = getBestMove(game, difficulty);
+    if (instance && !instance.error && typeof instance.exports.calculateMove === 'function') {
+        // Assuming a `calculateMove` or similar signature. But since it's just a raw binary, we fallback
+        try {
+            bestMove = instance.exports.calculateMove(fen);
+        } catch(e) {
+            console.error('WASM calculation error', e);
+        }
+    }
+
+    if (!bestMove) {
+        const game = new Chess(fen);
+        bestMove = getBestMove(game, difficulty);
+    }
+
     return json({ bestMove });
   } catch (error) {
     const status = error instanceof RangeError ? 413 : 400;
@@ -124,19 +168,30 @@ const submitMatch = async (request, env) => {
     });
 
     if (env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY) {
-      const supabaseResponse = await fetch(`${env.SUPABASE_URL}/rest/v1/arcade_chess_matches`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': env.SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ pgn_string, result, match_type })
-      });
-      if (!supabaseResponse.ok) {
-        console.error('Failed to submit to Supabase:', await supabaseResponse.text());
+      try {
+        const supabaseResponse = await fetch(`${env.SUPABASE_URL}/rest/v1/arcade_chess_matches`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': env.SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ pgn_string, result, match_type })
+        });
+        if (!supabaseResponse.ok) {
+          throw new Error('Supabase responded with an error: ' + await supabaseResponse.text());
+        }
+      } catch (err) {
+        console.error('Failed to submit to Supabase:', err);
+        if (env.CHESS_STATE) {
+          const matchId = crypto.randomUUID();
+          await env.CHESS_STATE.put(`queue:telemetry:${matchId}`, JSON.stringify({ pgn_string, result, match_type }));
+        }
       }
+    } else if (env.CHESS_STATE) {
+        const matchId = crypto.randomUUID();
+        await env.CHESS_STATE.put(`queue:telemetry:${matchId}`, JSON.stringify({ pgn_string, result, match_type }));
     }
 
     return json({ accepted: true }, 202);
