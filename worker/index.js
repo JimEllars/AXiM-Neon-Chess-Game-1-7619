@@ -47,9 +47,40 @@ const parseJson = async (request) => {
   return JSON.parse(body);
 };
 
-const computerMove = async (request) => {
+
+async function loadStockfishWasm(env) {
+  // Placeholder for WebAssembly binary instantiation
+  return null;
+}
+
+const computerMove = async (request, env) => {
   if (request.method !== 'POST') {
     return json({ error: 'Method not allowed.' }, 405);
+  }
+
+  const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-real-ip') || 'unknown';
+  const kvKey = `rate_limit_move_${clientIP}`;
+
+  if (env.CHESS_STATE) {
+    try {
+      const now = Date.now();
+      const windowStart = now - 60000;
+      let timestamps = await env.CHESS_STATE.get(kvKey, 'json');
+      if (!Array.isArray(timestamps)) {
+        timestamps = [];
+      }
+      timestamps = timestamps.filter(t => t > windowStart);
+
+      if (timestamps.length >= 10) {
+        return json({ error: 'Too many requests.' }, 429);
+      }
+
+      timestamps.push(now);
+      // expirationTtl of 60 seconds is enough since window is 60s
+      await env.CHESS_STATE.put(kvKey, JSON.stringify(timestamps), { expirationTtl: 60 });
+    } catch (err) {
+      console.error('KV rate limit error', err);
+    }
   }
 
   try {
@@ -57,6 +88,8 @@ const computerMove = async (request) => {
     if (typeof fen !== 'string' || !['easy', 'normal', 'hard'].includes(difficulty)) {
       return json({ error: 'Invalid chess position or difficulty.' }, 400);
     }
+
+    await loadStockfishWasm(env);
 
     const game = new Chess(fen);
     const bestMove = getBestMove(game, difficulty);
@@ -66,6 +99,7 @@ const computerMove = async (request) => {
     return json({ error: error.message || 'Invalid chess position.' }, status);
   }
 };
+
 
 const submitMatch = async (request, env) => {
   if (request.method !== 'POST') {
@@ -134,7 +168,7 @@ export default {
     const { pathname } = new URL(request.url);
 
     if (pathname === `${API_PATH}/move`) {
-      return computerMove(request);
+      return computerMove(request, env);
     }
 
     if (pathname === `${API_PATH}/submit-match`) {
