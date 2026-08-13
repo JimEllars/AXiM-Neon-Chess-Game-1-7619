@@ -101,6 +101,7 @@ export default function NeonBoard() {
       )}
 
       <Chessboard 
+        arePiecesDraggable={!isComputerThinking}
         id="NeonChess" 
         position={fen} 
         onPieceDrop={onDrop}

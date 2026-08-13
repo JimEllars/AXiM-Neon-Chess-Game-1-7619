@@ -1,17 +1,43 @@
-import { getBestMove } from '../utils/ChessEngine';
+export const fetchComputerMove = async (fen, difficulty = 'normal') => {
+  try {
+    const response = await fetch('/api/v1/chess/move', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ fen, difficulty })
+    });
 
-export const fetchComputerMove = async (game, difficulty = 'normal') => {
-  // Simulate network latency to the edge worker
-  const delay = Math.random() * 800 + 400;
-  await new Promise((resolve) => setTimeout(resolve, delay));
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-  // In a real scenario, this would be a POST to /api/v1/chess/move
-  // Here we use our local lightweight engine
-  return getBestMove(game, difficulty);
+    const data = await response.json();
+    return data.bestMove;
+  } catch (error) {
+    console.error('[EDGE GATEWAY] Error fetching computer move:', error);
+    return null;
+  }
 };
 
-export const submitMatchTelemetry = async (pgn, result) => {
+export const submitMatchTelemetry = async (pgn, result, matchType) => {
   console.log(`[EDGE GATEWAY] Submitting Match: ${result}`);
-  // Placeholder for Supabase/Worker integration
-  return true;
+  try {
+    const response = await fetch('/api/v1/chess/submit-match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ pgn, result, matchType })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[EDGE GATEWAY] Error submitting match telemetry:', error);
+    return false;
+  }
 };

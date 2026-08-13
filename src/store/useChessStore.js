@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Chess } from 'chess.js';
 import { playMoveSound, playCaptureSound, playCheckmateSound, playCheckSound, playTickSound } from '../utils/SynthAudioEngine';
-import { fetchComputerMove } from '../services/engineApi';
+import { fetchComputerMove, submitMatchTelemetry } from '../services/engineApi';
 
 const DEFAULT_TIME = 600; // 10 minutes
 
@@ -47,14 +47,16 @@ export const useChessStore = create((set, get) => ({
   toggleSound: () => set((state) => ({ soundEnabled: !state })),
 
   tickTimers: () => {
-    const { game, timers, isPaused, gameOver } = get();
+    const { game, timers, isPaused, gameOver, gameMode } = get();
     if (isPaused || gameOver) return;
 
     const turn = game.turn();
     const newTimers = { ...timers, [turn]: Math.max(0, timers[turn] - 1) };
     
     if (newTimers[turn] === 0) {
-      set({ gameOver: turn === 'w' ? 'BLACK WINS BY TIME' : 'WHITE WINS BY TIME' });
+      const result = turn === 'w' ? 'BLACK WINS BY TIME' : 'WHITE WINS BY TIME';
+      set({ gameOver: result });
+      submitMatchTelemetry(game.pgn(), result, gameMode);
     }
     
     set({ timers: newTimers });
@@ -62,7 +64,7 @@ export const useChessStore = create((set, get) => ({
   },
 
   makeMove: async (moveObj) => {
-    const { game, isComputerThinking, soundEnabled, stats, gameMode } = get();
+    const { game, isComputerThinking, soundEnabled, stats, gameMode, difficulty } = get();
     if (isComputerThinking || get().gameOver) return false;
 
     try {
@@ -95,12 +97,23 @@ export const useChessStore = create((set, get) => ({
         });
 
         if (game.isGameOver()) {
-          set({ gameOver: game.isCheckmate() ? 'CHECKMATE' : 'DRAW' });
+          let result = 'DRAW';
+          if (game.isCheckmate()) result = 'CHECKMATE';
+          set({ gameOver: result });
+          submitMatchTelemetry(game.pgn(), result, gameMode);
           return true;
         }
 
         if (gameMode === 'ai' && game.turn() === 'b') {
-          get().triggerComputerMove();
+          set({ isComputerThinking: true, status: 'CALCULATING' });
+          fetchComputerMove(game.fen(), difficulty).then(computerMove => {
+            if (computerMove) {
+              set({ isComputerThinking: false });
+              get().makeMove(computerMove);
+            } else {
+              set({ isComputerThinking: false, status: 'ERROR CALCULATING' });
+            }
+          });
         }
         return true;
       }
@@ -108,16 +121,7 @@ export const useChessStore = create((set, get) => ({
     return false;
   },
 
-  triggerComputerMove: async () => {
-    set({ isComputerThinking: true, status: 'CALCULATING' });
-    const { game, difficulty } = get();
-    const computerMove = await fetchComputerMove(game, difficulty);
-    
-    if (computerMove) {
-      get().makeMove(computerMove);
-      set({ isComputerThinking: false });
-    }
-  },
+
 
   resetGame: () => {
     const { initialTime } = get();
