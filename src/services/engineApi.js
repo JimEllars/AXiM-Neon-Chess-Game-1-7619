@@ -13,6 +13,10 @@ export const fetchComputerMove = async (fen, difficulty = 'normal') => {
       body: JSON.stringify({ fen, difficulty })
     });
 
+    if (response.status === 429) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -21,6 +25,11 @@ export const fetchComputerMove = async (fen, difficulty = 'normal') => {
     return data.bestMove;
   } catch (error) {
     console.error('[EDGE GATEWAY] Error fetching computer move:', error);
+
+    if (error.message === 'RATE_LIMIT_EXCEEDED') {
+      throw error;
+    }
+
     try {
       return getBestMove(new Chess(fen), difficulty);
     } catch (fallbackError) {

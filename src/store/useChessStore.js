@@ -116,7 +116,11 @@ export const useChessStore = create((set, get) => ({
                 set({ isComputerThinking: false, status: 'SYSTEM ERROR: AI OFFLINE' });
               }
             } catch (error) {
-              set({ isComputerThinking: false, status: 'SYSTEM ERROR: AI OFFLINE' });
+              if (error.message === 'RATE_LIMIT_EXCEEDED') {
+                set({ isComputerThinking: false, status: 'SYSTEM OVERLOAD: RATE LIMIT EXCEEDED' });
+              } else {
+                set({ isComputerThinking: false, status: 'SYSTEM ERROR: AI OFFLINE' });
+              }
             }
           })();
         }
