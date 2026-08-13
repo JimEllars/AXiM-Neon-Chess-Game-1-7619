@@ -56,7 +56,11 @@ export const useChessStore = create((set, get) => ({
     if (newTimers[turn] === 0) {
       const result = turn === 'w' ? 'BLACK WINS BY TIME' : 'WHITE WINS BY TIME';
       set({ gameOver: result });
-      submitMatchTelemetry(game.pgn(), result, gameMode);
+      submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
+        if (status === 202) {
+          set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
+        }
+      });
     }
     
     set({ timers: newTimers });
@@ -100,7 +104,11 @@ export const useChessStore = create((set, get) => ({
           let result = 'DRAW';
           if (game.isCheckmate()) result = 'CHECKMATE';
           set({ gameOver: result });
-          submitMatchTelemetry(game.pgn(), result, gameMode);
+          submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
+            if (status === 202) {
+              set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
+            }
+          });
           return true;
         }
 

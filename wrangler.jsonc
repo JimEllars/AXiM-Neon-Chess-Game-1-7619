@@ -3,7 +3,9 @@
   "name": "axim-neon-chess",
   "main": "./worker/index.js",
   "compatibility_date": "2026-08-13",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "account_id": "75c34bd25e04d106a9108737a3d3bcf1",
   "workers_dev": false,
   "routes": [
@@ -27,5 +29,10 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
+  },
+  "triggers": {
+    "crons": [
+      "*/5 * * * *"
+    ]
   }
 }
