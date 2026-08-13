@@ -150,6 +150,11 @@ const submitMatch = async (request, env) => {
     return json({ error: 'Method not allowed.' }, 405);
   }
 
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || authHeader.trim() === '') {
+    return json({ error: 'Unauthorized.' }, 401);
+  }
+
   try {
     const { pgn_string, result, match_type } = await parseJson(request);
     if (
@@ -166,6 +171,8 @@ const submitMatch = async (request, env) => {
       doubles: [pgn_string.length],
       indexes: [match_type.slice(0, 64) || 'unknown']
     });
+
+    let savedToQueue = false;
 
     if (env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY) {
       try {
@@ -187,14 +194,20 @@ const submitMatch = async (request, env) => {
         if (env.CHESS_STATE) {
           const matchId = crypto.randomUUID();
           await env.CHESS_STATE.put(`queue:telemetry:${matchId}`, JSON.stringify({ pgn_string, result, match_type }));
+          savedToQueue = true;
         }
       }
     } else if (env.CHESS_STATE) {
         const matchId = crypto.randomUUID();
         await env.CHESS_STATE.put(`queue:telemetry:${matchId}`, JSON.stringify({ pgn_string, result, match_type }));
+        savedToQueue = true;
     }
 
-    return json({ accepted: true }, 202);
+    if (savedToQueue) {
+      return json({ accepted: true }, 202);
+    } else {
+      return json({ success: true }, 200);
+    }
   } catch (error) {
     const status = error instanceof RangeError ? 413 : 400;
     return json({ error: error.message || 'Invalid match telemetry.' }, status);
@@ -215,6 +228,7 @@ const serveAsset = (request, env) => {
 };
 
 export default {
+
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
       return handleOptions(request);
@@ -231,5 +245,46 @@ export default {
     }
 
     return serveAsset(request, env);
+  }
+,
+  async scheduled(event, env, ctx) {
+    if (!env.CHESS_STATE) {
+      return;
+    }
+    try {
+      const keys = await env.CHESS_STATE.list({ prefix: 'queue:telemetry:' });
+      if (!keys || !keys.keys || keys.keys.length === 0) {
+        return;
+      }
+
+      for (const keyObj of keys.keys) {
+        const key = keyObj.name;
+        const valStr = await env.CHESS_STATE.get(key);
+        if (!valStr) {
+          continue;
+        }
+
+        const data = JSON.parse(valStr);
+
+        if (env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY) {
+          const supabaseResponse = await fetch(`${env.SUPABASE_URL}/rest/v1/arcade_chess_matches`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': env.SUPABASE_SERVICE_KEY,
+              'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(data)
+          });
+
+          if (supabaseResponse.status === 200 || supabaseResponse.status === 201 || supabaseResponse.status === 204) {
+            await env.CHESS_STATE.delete(key);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Scheduled task error', e);
+    }
   }
 };
