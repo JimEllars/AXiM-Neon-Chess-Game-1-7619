@@ -4,6 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  base: '/games/neon-chess/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')

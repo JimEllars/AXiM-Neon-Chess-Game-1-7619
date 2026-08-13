@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "axim-neon-chess",
+  "main": "./worker/index.js",
+  "compatibility_date": "2026-08-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "75c34bd25e04d106a9108737a3d3bcf1",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "axim.us.com/games/neon-chess*",
+      "zone_name": "axim.us.com"
+    }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "run_worker_first": true
+  },
+  "analytics_engine_datasets": [
+    {
+      "binding": "CHESS_ANALYTICS",
+      "dataset": "axim_neon_chess"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
