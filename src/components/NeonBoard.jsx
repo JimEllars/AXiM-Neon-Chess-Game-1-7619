@@ -1,83 +1,136 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { useChessStore } from '../store/useChessStore';
+import * as FaIcons from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const { 
+  FaChessPawn, FaChessKnight, FaChessBishop, 
+  FaChessRook, FaChessQueen, FaChessKing 
+} = FaIcons;
 
 export default function NeonBoard() {
-  const { fen, makeMove, isComputerThinking, game, showHints, optionSquares, setOptionSquares } = useChessStore();
+  const { 
+    fen, makeMove, isComputerThinking, game, 
+    showHints, optionSquares, setOptionSquares, 
+    pieceSet, lastMove, boardOrientation 
+  } = useChessStore();
 
   const onDrop = (sourceSquare, targetSquare) => {
     if (isComputerThinking) return false;
-    
     const move = makeMove({
       from: sourceSquare,
       to: targetSquare,
       promotion: 'q',
     });
-    
     return move;
   };
 
   const onSquareClick = (square) => {
     if (!showHints || isComputerThinking) return;
-
-    // Clear if clicking same square or empty square
     if (optionSquares[square]) {
       setOptionSquares({});
       return;
     }
-
-    const moves = game.moves({
-      square,
-      verbose: true,
-    });
-
+    const moves = game.moves({ square, verbose: true });
     if (moves.length === 0) {
       setOptionSquares({});
       return;
     }
-
     const newSquares = {};
     moves.map((move) => {
       newSquares[move.to] = {
-        background:
-          game.get(move.to) && game.get(move.to).color !== game.get(square).color
-            ? 'radial-gradient(circle, rgba(255,0,127,.3) 85%, transparent 85%)'
-            : 'radial-gradient(circle, rgba(0,240,255,.2) 25%, transparent 25%)',
+        background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
+            ? 'radial-gradient(circle, rgba(255,0,127,.4) 85%, transparent 85%)'
+            : 'radial-gradient(circle, rgba(0,240,255,.3) 25%, transparent 25%)',
         borderRadius: '50%',
       };
       return move;
     });
-
-    newSquares[square] = {
-      background: 'rgba(0, 240, 255, 0.1)',
-    };
-
+    newSquares[square] = { background: 'rgba(0, 240, 255, 0.15)' };
     setOptionSquares(newSquares);
   };
 
+  const squareStyles = useMemo(() => {
+    const styles = { ...optionSquares };
+    if (lastMove) {
+      styles[lastMove.from] = { ...styles[lastMove.from], backgroundColor: 'rgba(255, 255, 255, 0.05)' };
+      styles[lastMove.to] = { ...styles[lastMove.to], backgroundColor: 'rgba(0, 240, 255, 0.1)' };
+    }
+    return styles;
+  }, [optionSquares, lastMove]);
+
+  const customPieces = useMemo(() => {
+    if (pieceSet !== 'retro' && pieceSet !== 'digital') return undefined;
+    const pieces = ['P', 'N', 'B', 'R', 'Q', 'K'];
+    const colors = ['w', 'b'];
+    const mapping = {};
+    const IconMap = { P: FaChessPawn, N: FaChessKnight, B: FaChessBishop, R: FaChessRook, Q: FaChessQueen, K: FaChessKing };
+
+    colors.forEach(color => {
+      pieces.forEach(p => {
+        const Icon = IconMap[p];
+        mapping[`${color}${p}`] = ({ squareWidth }) => (
+          <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center justify-center h-full w-full">
+            <Icon 
+              style={{ 
+                width: squareWidth * (pieceSet === 'retro' ? 0.75 : 0.65), 
+                height: squareWidth * (pieceSet === 'retro' ? 0.75 : 0.65),
+                color: color === 'w' ? '#00f0ff' : '#ff007f',
+                filter: pieceSet === 'retro' 
+                  ? `drop-shadow(0 0 12px ${color === 'w' ? 'rgba(0,240,255,1)' : 'rgba(255,0,127,1)'}) brightness(1.2)`
+                  : `drop-shadow(0 0 8px ${color === 'w' ? 'rgba(0,240,255,0.8)' : 'rgba(255,0,127,0.8)'})`
+              }} 
+            />
+          </motion.div>
+        );
+      });
+    });
+    return mapping;
+  }, [pieceSet]);
+
   return (
-    <div className="w-full max-w-[550px] mx-auto p-3 neon-border-cyan bg-[#0a0a0f] rounded-lg shadow-[0_0_40px_rgba(0,240,255,0.15)] relative">
+    <div className={`w-full max-w-[580px] mx-auto p-4 neon-border-cyan bg-[#050508] rounded-xl shadow-[0_0_60px_rgba(0,240,255,0.2)] relative piece-set-${pieceSet}`}>
+      {pieceSet === 'retro' && (
+        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
+          <div className="w-full h-full" style={{
+            backgroundImage: 'linear-gradient(#00f0ff 1px, transparent 1px), linear-gradient(90deg, #00f0ff 1px, transparent 1px)',
+            backgroundSize: '12.5% 12.5%'
+          }}></div>
+        </div>
+      )}
+
       <Chessboard 
         id="NeonChess" 
         position={fen} 
         onPieceDrop={onDrop}
         onSquareClick={onSquareClick}
-        customSquareStyles={{
-          ...optionSquares,
-        }}
-        customDarkSquareStyle={{ backgroundColor: '#0f172a' }}
-        customLightSquareStyle={{ backgroundColor: '#1e293b' }}
+        boardOrientation={boardOrientation}
+        customPieces={customPieces}
+        customSquareStyles={squareStyles}
+        customDarkSquareStyle={{ backgroundColor: pieceSet === 'retro' ? '#0a0015' : '#0f172a' }}
+        customLightSquareStyle={{ backgroundColor: pieceSet === 'retro' ? '#1a0030' : '#1e293b' }}
         customBoardStyle={{
-          borderRadius: '4px',
-          boxShadow: '0 0 20px rgba(0, 240, 255, 0.1)'
+          borderRadius: '8px',
+          boxShadow: '0 0 30px rgba(0, 240, 255, 0.15)',
+          border: pieceSet === 'retro' ? '2px solid #ff007f' : '1px solid rgba(0, 240, 255, 0.3)'
         }}
-        animationDuration={300}
+        animationDuration={250}
       />
       
-      {/* Visual Scanline Effect Overlay */}
-      <div className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden opacity-[0.03]">
-        <div className="w-full h-full bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
+      <div className="absolute inset-0 pointer-events-none rounded-xl overflow-hidden opacity-[0.05] mix-blend-overlay">
+        <div className="w-full h-full bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>
       </div>
+
+      <AnimatePresence>
+        {game.isCheck() && (
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+            <div className="px-8 py-3 bg-rose-600/20 border-2 border-rose-500 text-rose-500 font-mono font-black text-4xl italic tracking-tighter uppercase neon-text-magenta animate-pulse">
+              System Breach: Check
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
