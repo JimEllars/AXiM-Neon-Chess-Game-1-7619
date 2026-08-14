@@ -19,6 +19,7 @@ export const useChessStore = create((set, get) => ({
   pieceSet: 'retro',
   capturedPieces: { w: [], b: [] },
   optionSquares: {},
+  selectedSquare: null,
   lastMove: null,
   gameOver: null,
   
@@ -41,9 +42,11 @@ export const useChessStore = create((set, get) => ({
   },
 
   setPieceSet: (set) => set({ pieceSet: set }),
+  setSelectedSquare: (square) => set({ selectedSquare: square }),
+  setOptionSquares: (squares) => set({ optionSquares: squares }),
   setDifficulty: (level) => set({ difficulty: level }),
   setBoardOrientation: (side) => set({ boardOrientation: side }),
-  toggleHints: () => set((state) => ({ showHints: !state, optionSquares: {} })),
+  toggleHints: () => set((state) => ({ showHints: !state, optionSquares: {}, selectedSquare: null })),
   toggleSound: () => set((state) => ({ soundEnabled: !state })),
 
   tickTimers: () => {
@@ -90,6 +93,7 @@ export const useChessStore = create((set, get) => ({
             b: move.color === 'w' && move.captured ? [...get().capturedPieces.b, move.captured] : get().capturedPieces.b
           },
           optionSquares: {},
+          selectedSquare: null,
           lastMove: { from: move.from, to: move.to },
           isPaused: false,
           stats: {
@@ -150,6 +154,7 @@ export const useChessStore = create((set, get) => ({
       moveHistory: [],
       capturedPieces: { w: [], b: [] },
       optionSquares: {},
+      selectedSquare: null,
       lastMove: null,
       gameOver: null,
       timers: { w: initialTime, b: initialTime },

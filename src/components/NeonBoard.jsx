@@ -13,7 +13,8 @@ export default function NeonBoard() {
   const { 
     fen, makeMove, isComputerThinking, game, 
     showHints, optionSquares, setOptionSquares, 
-    pieceSet, lastMove, boardOrientation 
+    pieceSet, lastMove, boardOrientation,
+    selectedSquare, setSelectedSquare
   } = useChessStore();
 
   const onDrop = (sourceSquare, targetSquare) => {
@@ -28,37 +29,85 @@ export default function NeonBoard() {
 
   const onSquareClick = (square) => {
     if (!showHints || isComputerThinking) return;
-    if (optionSquares[square]) {
-      setOptionSquares({});
-      return;
+
+    if (selectedSquare) {
+      // Tap 2: Try to move
+      const move = makeMove({
+        from: selectedSquare,
+        to: square,
+        promotion: 'q',
+      });
+
+      if (move) {
+        // Valid move
+        setSelectedSquare(null);
+        setOptionSquares({});
+        return;
+      }
     }
-    const moves = game.moves({ square, verbose: true });
-    if (moves.length === 0) {
+
+    // Tapped an invalid destination, or same piece, or first tap
+    const piece = game.get(square);
+    // Only select if there's a piece and it belongs to the player whose turn it is
+    if (piece && piece.color === game.turn()) {
+      if (selectedSquare === square) {
+        // Tap same piece again to cancel
+        setSelectedSquare(null);
+        setOptionSquares({});
+      } else {
+        // Select new piece
+        setSelectedSquare(square);
+        const moves = game.moves({ square, verbose: true });
+        const newSquares = {};
+        moves.map((move) => {
+          newSquares[move.to] = {
+            background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
+                ? 'radial-gradient(circle, rgba(255,0,127,.4) 85%, transparent 85%)'
+                : 'radial-gradient(circle, rgba(0,240,255,.3) 25%, transparent 25%)',
+            borderRadius: '50%',
+          };
+          return move;
+        });
+        setOptionSquares(newSquares);
+      }
+    } else {
+      // Cancel selection if clicking empty square or opponent's piece without valid move
+      setSelectedSquare(null);
       setOptionSquares({});
-      return;
     }
-    const newSquares = {};
-    moves.map((move) => {
-      newSquares[move.to] = {
-        background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
-            ? 'radial-gradient(circle, rgba(255,0,127,.4) 85%, transparent 85%)'
-            : 'radial-gradient(circle, rgba(0,240,255,.3) 25%, transparent 25%)',
-        borderRadius: '50%',
-      };
-      return move;
-    });
-    newSquares[square] = { background: 'rgba(0, 240, 255, 0.15)' };
-    setOptionSquares(newSquares);
   };
 
   const squareStyles = useMemo(() => {
-    const styles = { ...optionSquares };
+    const styles = {};
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
+    files.forEach(f => {
+      ranks.forEach(r => {
+        const sq = `${f}${r}`;
+        styles[sq] = {
+          border: pieceSet === 'retro' ? '1px solid rgba(255, 0, 127, 0.15)' : '1px solid rgba(0, 240, 255, 0.15)',
+          boxSizing: 'border-box'
+        };
+      });
+    });
+
+    Object.assign(styles, optionSquares);
+
     if (lastMove) {
       styles[lastMove.from] = { ...styles[lastMove.from], backgroundColor: 'rgba(255, 255, 255, 0.05)' };
       styles[lastMove.to] = { ...styles[lastMove.to], backgroundColor: 'rgba(0, 240, 255, 0.1)' };
     }
+
+    if (selectedSquare) {
+      styles[selectedSquare] = {
+        ...styles[selectedSquare],
+        backgroundColor: 'rgba(0, 240, 255, 0.4)'
+      };
+    }
+
     return styles;
-  }, [optionSquares, lastMove]);
+  }, [optionSquares, lastMove, pieceSet, selectedSquare]);
 
   const customPieces = useMemo(() => {
     if (pieceSet !== 'retro' && pieceSet !== 'digital') return undefined;
