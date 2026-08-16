@@ -30,48 +30,67 @@ export default function NeonBoard() {
   const onSquareClick = (square) => {
     if (!showHints || isComputerThinking) return;
 
+    const piece = game.get(square);
+    const isPlayersTurn = piece && piece.color === game.turn();
+
+    if (selectedSquare === square) {
+      // Cancel selection if tapping the same piece again
+      setSelectedSquare(null);
+      setOptionSquares({});
+      return;
+    }
+
     if (selectedSquare) {
       // Tap 2: Try to move
-      const move = makeMove({
-        from: selectedSquare,
-        to: square,
-        promotion: 'q',
-      });
+      const moves = game.moves({ square: selectedSquare, verbose: true });
+      const isValidMove = moves.some((m) => m.to === square);
 
-      if (move) {
-        // Valid move
-        setSelectedSquare(null);
-        setOptionSquares({});
-        return;
+      if (isValidMove) {
+        const move = makeMove({
+          from: selectedSquare,
+          to: square,
+          promotion: 'q',
+        });
+
+        if (move) {
+          setSelectedSquare(null);
+          setOptionSquares({});
+          return;
+        }
+      } else if (isPlayersTurn) {
+         // Selected a different piece belonging to the player, update selection
+         setSelectedSquare(square);
+         const newMoves = game.moves({ square, verbose: true });
+         const newSquares = {};
+         newMoves.forEach((move) => {
+           newSquares[move.to] = {
+             background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
+                 ? 'radial-gradient(circle, rgba(255,0,127,.8) 25%, transparent 25%)'
+                 : 'radial-gradient(circle, rgba(0,240,255,.8) 25%, transparent 25%)',
+             borderRadius: '50%',
+           };
+         });
+         setOptionSquares(newSquares);
+         return;
       }
     }
 
-    // Tapped an invalid destination, or same piece, or first tap
-    const piece = game.get(square);
-    // Only select if there's a piece and it belongs to the player whose turn it is
-    if (piece && piece.color === game.turn()) {
-      if (selectedSquare === square) {
-        // Tap same piece again to cancel
-        setSelectedSquare(null);
-        setOptionSquares({});
-      } else {
-        // Select new piece
-        setSelectedSquare(square);
-        const moves = game.moves({ square, verbose: true });
-        const newSquares = {};
-        moves.map((move) => {
-          newSquares[move.to] = {
-            background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
-                ? 'radial-gradient(circle, rgba(255,0,127,.4) 85%, transparent 85%)'
-                : 'radial-gradient(circle, rgba(0,240,255,.3) 25%, transparent 25%)',
-            borderRadius: '50%',
-          };
-          return move;
-        });
-        setOptionSquares(newSquares);
-      }
+    if (isPlayersTurn) {
+      // Select piece
+      setSelectedSquare(square);
+      const moves = game.moves({ square, verbose: true });
+      const newSquares = {};
+      moves.forEach((move) => {
+        newSquares[move.to] = {
+          background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
+              ? 'radial-gradient(circle, rgba(255,0,127,.8) 25%, transparent 25%)'
+              : 'radial-gradient(circle, rgba(0,240,255,.8) 25%, transparent 25%)',
+          borderRadius: '50%',
+        };
+      });
+      setOptionSquares(newSquares);
     } else {
-      // Cancel selection if clicking empty square or opponent's piece without valid move
+      // Tapped empty square or opponent's piece without having selected a piece to move
       setSelectedSquare(null);
       setOptionSquares({});
     }
@@ -86,7 +105,9 @@ export default function NeonBoard() {
       ranks.forEach(r => {
         const sq = `${f}${r}`;
         styles[sq] = {
-          border: pieceSet === 'retro' ? '1px solid rgba(255, 0, 127, 0.15)' : '1px solid rgba(0, 240, 255, 0.15)',
+          boxShadow: pieceSet === 'retro'
+            ? 'inset 0 0 5px rgba(255, 0, 127, 0.3), 0 0 1px rgba(255, 0, 127, 0.5)'
+            : 'inset 0 0 5px rgba(0, 240, 255, 0.3), 0 0 1px rgba(0, 240, 255, 0.5)',
           boxSizing: 'border-box'
         };
       });
