@@ -22,6 +22,7 @@ export const useChessStore = create((set, get) => ({
   selectedSquare: null,
   lastMove: null,
   gameOver: null,
+  signMatchCallback: null,
   
   // Timer State
   initialTime: DEFAULT_TIME,
@@ -30,6 +31,8 @@ export const useChessStore = create((set, get) => ({
   
   // Stats
   stats: { moves: 0, captures: 0, checks: 0 },
+
+  setSignMatchCallback: (cb) => set({ signMatchCallback: cb }),
 
   setInitialTime: (seconds) => {
     set({ initialTime: seconds, timers: { w: seconds, b: seconds }, isPaused: true });
@@ -59,11 +62,22 @@ export const useChessStore = create((set, get) => ({
     if (newTimers[turn] === 0) {
       const result = turn === 'w' ? 'BLACK WINS BY TIME' : 'WHITE WINS BY TIME';
       set({ gameOver: result });
-      submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
-        if (status === 202) {
-          set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
-        }
-      });
+      const { signMatchCallback } = get();
+      if (signMatchCallback) {
+        signMatchCallback(game.pgn(), result).then(signature => {
+          submitMatchTelemetry(game.pgn(), result, gameMode, signature).then((status) => {
+            if (status === 202) {
+              set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
+            }
+          });
+        }).catch(err => console.error("Signing failed", err));
+      } else {
+        submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
+          if (status === 202) {
+            set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
+          }
+        });
+      }
     }
     
     set({ timers: newTimers });
@@ -108,11 +122,22 @@ export const useChessStore = create((set, get) => ({
           let result = 'DRAW';
           if (game.isCheckmate()) result = 'CHECKMATE';
           set({ gameOver: result });
-          submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
+          const { signMatchCallback } = get();
+      if (signMatchCallback) {
+        signMatchCallback(game.pgn(), result).then(signature => {
+          submitMatchTelemetry(game.pgn(), result, gameMode, signature).then((status) => {
             if (status === 202) {
               set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
             }
           });
+        }).catch(err => console.error("Signing failed", err));
+      } else {
+        submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
+          if (status === 202) {
+            set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
+          }
+        });
+      }
           return true;
         }
 
