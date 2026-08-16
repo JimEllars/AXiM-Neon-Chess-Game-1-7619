@@ -39,7 +39,7 @@ export const fetchComputerMove = async (fen, difficulty = 'normal') => {
   }
 };
 
-export const submitMatchTelemetry = async (pgn, result, matchType = 'pve_free') => {
+export const submitMatchTelemetry = async (pgn, result, matchType = 'pve_free', signature = null) => {
   console.log(`[EDGE GATEWAY] Submitting Match: ${result}`);
 
   try {
@@ -47,7 +47,7 @@ export const submitMatchTelemetry = async (pgn, result, matchType = 'pve_free') 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer AXIM_TEMP_DEV_TOKEN'
+        'Authorization': signature ? `Bearer ${signature}` : 'Bearer AXIM_TEMP_DEV_TOKEN'
       },
       body: JSON.stringify({
         pgn_string: pgn,

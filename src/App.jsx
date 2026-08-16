@@ -3,8 +3,26 @@ import NeonBoard from './components/NeonBoard';
 import ChessHUD from './components/ChessHUD';
 import GameOverModal from './components/GameOverModal';
 import { motion } from 'framer-motion';
+import { useAccount, useSignMessage } from 'wagmi';
+import { useChessStore } from './store/useChessStore';
+import { useEffect } from 'react';
 
 function App() {
+  const { isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+  const setSignMatchCallback = useChessStore(state => state.setSignMatchCallback);
+
+  useEffect(() => {
+    if (isConnected) {
+      setSignMatchCallback(async (pgn, result) => {
+        const message = `AXiM Arcade Verification\nResult: ${result}\nPGN: ${pgn}`;
+        return await signMessageAsync({ message });
+      });
+    } else {
+      setSignMatchCallback(null);
+    }
+  }, [isConnected, signMessageAsync, setSignMatchCallback]);
+
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-start md:justify-center p-4 py-20 md:py-0 overflow-x-hidden">
       

@@ -8,6 +8,7 @@ import GameModeSelector from './GameModeSelector';
 import OrientationToggle from './OrientationToggle';
 import TimeControlSelector from './TimeControlSelector';
 import MoveHistory from './MoveHistory';
+import WalletConnect from './WalletConnect';
 import CapturedPieces from './CapturedPieces';
 import TacticalDisplay from './TacticalDisplay';
 import * as FiIcons from 'react-icons/fi';
@@ -36,6 +37,9 @@ export default function ChessHUD() {
 
         {/* Status Hub */}
         <div className="relative p-6 bg-[#0a0a0f] border border-cyan-500/20 rounded-xl overflow-hidden group">
+          <div className="absolute top-2 right-2 z-10">
+             <WalletConnect />
+          </div>
           <div className="absolute top-0 right-0 p-2 opacity-20">
              <SafeIcon icon={FiInfo} className="text-cyan-500" />
           </div>
