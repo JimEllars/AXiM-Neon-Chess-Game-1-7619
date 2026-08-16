@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { useChessStore } from '../store/useChessStore';
+import { playSelectSound } from '../utils/SynthAudioEngine';
 import * as FaIcons from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -60,13 +61,14 @@ export default function NeonBoard() {
       } else if (isPlayersTurn) {
          // Selected a different piece belonging to the player, update selection
          setSelectedSquare(square);
+         playSelectSound();
          const newMoves = game.moves({ square, verbose: true });
          const newSquares = {};
          newMoves.forEach((move) => {
            newSquares[move.to] = {
              background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
-                 ? 'radial-gradient(circle, rgba(255,0,127,.8) 25%, transparent 25%)'
-                 : 'radial-gradient(circle, rgba(0,240,255,.8) 25%, transparent 25%)',
+                 ? 'radial-gradient(circle, rgba(255, 0, 127, 0.6) 25%, transparent 25%)'
+                 : 'radial-gradient(circle, rgba(0, 240, 255, 0.4) 25%, transparent 25%)',
              borderRadius: '50%',
            };
          });
@@ -78,13 +80,14 @@ export default function NeonBoard() {
     if (isPlayersTurn) {
       // Select piece
       setSelectedSquare(square);
+      playSelectSound();
       const moves = game.moves({ square, verbose: true });
       const newSquares = {};
       moves.forEach((move) => {
         newSquares[move.to] = {
           background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
-              ? 'radial-gradient(circle, rgba(255,0,127,.8) 25%, transparent 25%)'
-              : 'radial-gradient(circle, rgba(0,240,255,.8) 25%, transparent 25%)',
+                 ? 'radial-gradient(circle, rgba(255, 0, 127, 0.6) 25%, transparent 25%)'
+                 : 'radial-gradient(circle, rgba(0, 240, 255, 0.4) 25%, transparent 25%)',
           borderRadius: '50%',
         };
       });

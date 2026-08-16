@@ -47,7 +47,7 @@ export const submitMatchTelemetry = async (pgn, result, matchType = 'pve_free') 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer AXIM_TEMP_TOKEN'
+        'Authorization': 'Bearer AXIM_TEMP_DEV_TOKEN'
       },
       body: JSON.stringify({
         pgn_string: pgn,

@@ -58,3 +58,6 @@ export const playCheckmateSound = () => {
 export const playTickSound = () => {
   playTone(1200, 'sine', 0.02, 0.02);
 };
+export const playSelectSound = () => {
+  playTone(440, 'sine', 0.05, 0.05);
+};
