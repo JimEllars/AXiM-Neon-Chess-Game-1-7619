@@ -150,6 +150,7 @@ const submitMatch = async (request, env) => {
     return json({ error: 'Method not allowed.' }, 405);
   }
 
+  // Telemetry Authentication Scaffold
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || authHeader.trim() === '') {
     return json({ error: 'Unauthorized.' }, 401);
