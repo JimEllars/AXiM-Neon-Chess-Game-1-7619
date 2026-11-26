@@ -14,22 +14,43 @@ export default function NeonBoard() {
   const { 
     fen, makeMove, isComputerThinking, game, 
     showHints, optionSquares, setOptionSquares, 
-    pieceSet, lastMove, boardOrientation,
+    pieceSet, boardTheme, lastMove, boardOrientation,
     selectedSquare, setSelectedSquare
   } = useChessStore();
 
-  const onDrop = (sourceSquare, targetSquare) => {
-    if (isComputerThinking) return false;
+  const [pendingPromotion, setPendingPromotion] = React.useState(null);
+
+  const checkIsPromotion = (from, to) => {
+    const piece = game.get(from);
+    if (!piece || piece.type !== 'p') return false;
+    const isWhitePromotion = piece.color === 'w' && from[1] === '7' && to[1] === '8';
+    const isBlackPromotion = piece.color === 'b' && from[1] === '2' && to[1] === '1';
+    return isWhitePromotion || isBlackPromotion;
+  };
+
+  const handleExecuteMove = (from, to, promotion = 'q') => {
     const move = makeMove({
-      from: sourceSquare,
-      to: targetSquare,
-      promotion: 'q',
+      from,
+      to,
+      promotion,
     });
+    setSelectedSquare(null);
+    setOptionSquares({});
+    setPendingPromotion(null);
     return move;
   };
 
+  const onDrop = (sourceSquare, targetSquare) => {
+    if (isComputerThinking) return false;
+    if (checkIsPromotion(sourceSquare, targetSquare)) {
+      setPendingPromotion({ from: sourceSquare, to: targetSquare });
+      return false;
+    }
+    return handleExecuteMove(sourceSquare, targetSquare);
+  };
+
   const onSquareClick = (square) => {
-    if (!showHints || isComputerThinking) return;
+    if (!showHints || isComputerThinking || pendingPromotion) return;
 
     const piece = game.get(square);
     const isPlayersTurn = piece && piece.color === game.turn();
@@ -47,17 +68,13 @@ export default function NeonBoard() {
       const isValidMove = moves.some((m) => m.to === square);
 
       if (isValidMove) {
-        const move = makeMove({
-          from: selectedSquare,
-          to: square,
-          promotion: 'q',
-        });
-
-        if (move) {
-          setSelectedSquare(null);
-          setOptionSquares({});
+        if (checkIsPromotion(selectedSquare, square)) {
+          setPendingPromotion({ from: selectedSquare, to: square });
           return;
         }
+
+        const move = handleExecuteMove(selectedSquare, square);
+        if (move) return;
       } else if (isPlayersTurn) {
          // Selected a different piece belonging to the player, update selection
          setSelectedSquare(square);
@@ -166,12 +183,20 @@ export default function NeonBoard() {
     return mapping;
   }, [pieceSet]);
 
+  const isObsidianGold = boardTheme === 'obsidian_gold';
+
   return (
-    <div className={`w-full max-w-[580px] mx-auto p-4 neon-border-cyan bg-[#050508] rounded-xl shadow-[0_0_60px_rgba(0,240,255,0.2)] relative piece-set-${pieceSet}`}>
+    <div className={`w-full max-w-[580px] mx-auto p-4 rounded-xl relative piece-set-${pieceSet} ${
+      isObsidianGold 
+        ? 'border-2 border-amber-500/60 bg-[#070603] shadow-[0_0_60px_rgba(245,158,11,0.25)]' 
+        : 'neon-border-cyan bg-[#050508] shadow-[0_0_60px_rgba(0,240,255,0.2)]'
+    }`}>
       {pieceSet === 'retro' && (
         <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
           <div className="w-full h-full" style={{
-            backgroundImage: 'linear-gradient(#00f0ff 1px, transparent 1px), linear-gradient(90deg, #00f0ff 1px, transparent 1px)',
+            backgroundImage: isObsidianGold
+              ? 'linear-gradient(#f59e0b 1px, transparent 1px), linear-gradient(90deg, #f59e0b 1px, transparent 1px)'
+              : 'linear-gradient(#00f0ff 1px, transparent 1px), linear-gradient(90deg, #00f0ff 1px, transparent 1px)',
             backgroundSize: '12.5% 12.5%'
           }}></div>
         </div>
@@ -186,12 +211,22 @@ export default function NeonBoard() {
         boardOrientation={boardOrientation}
         customPieces={customPieces}
         customSquareStyles={squareStyles}
-        customDarkSquareStyle={{ backgroundColor: pieceSet === 'retro' ? '#0a0015' : '#0f172a' }}
-        customLightSquareStyle={{ backgroundColor: pieceSet === 'retro' ? '#1a0030' : '#1e293b' }}
+        customDarkSquareStyle={{ 
+          backgroundColor: isObsidianGold 
+            ? '#120f06' 
+            : pieceSet === 'retro' ? '#0a0015' : '#0f172a' 
+        }}
+        customLightSquareStyle={{ 
+          backgroundColor: isObsidianGold 
+            ? '#2d240d' 
+            : pieceSet === 'retro' ? '#1a0030' : '#1e293b' 
+        }}
         customBoardStyle={{
           borderRadius: '8px',
-          boxShadow: '0 0 30px rgba(0, 240, 255, 0.15)',
-          border: pieceSet === 'retro' ? '2px solid #ff007f' : '1px solid rgba(0, 240, 255, 0.3)'
+          boxShadow: isObsidianGold ? '0 0 35px rgba(245, 158, 11, 0.25)' : '0 0 30px rgba(0, 240, 255, 0.15)',
+          border: isObsidianGold 
+            ? '2px solid #d97706' 
+            : pieceSet === 'retro' ? '2px solid #ff007f' : '1px solid rgba(0, 240, 255, 0.3)'
         }}
         animationDuration={250}
       />
@@ -206,6 +241,52 @@ export default function NeonBoard() {
             <div className="px-8 py-3 bg-rose-600/20 border-2 border-rose-500 text-rose-500 font-mono font-black text-4xl italic tracking-tighter uppercase neon-text-magenta animate-pulse">
               System Breach: Check
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cyberpunk Pawn Promotion Overlay */}
+      <AnimatePresence>
+        {pendingPromotion && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm rounded-xl p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-[#0b0e17] border-2 border-cyan-400 p-6 rounded-2xl shadow-[0_0_40px_rgba(0,240,255,0.4)] text-center max-w-sm w-full"
+            >
+              <h3 className="text-xs font-mono uppercase tracking-[0.3em] text-cyan-400 mb-1">Quantum Upgrade</h3>
+              <p className="text-[11px] font-mono text-white/60 mb-5">Select Promotion Spec</p>
+
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  { type: 'q', label: 'QUEEN', icon: FaChessQueen },
+                  { type: 'r', label: 'ROOK', icon: FaChessRook },
+                  { type: 'b', label: 'BISHOP', icon: FaChessBishop },
+                  { type: 'n', label: 'KNIGHT', icon: FaChessKnight }
+                ].map(({ type, label, icon: IconComponent }) => (
+                  <button
+                    key={type}
+                    onClick={() => handleExecuteMove(pendingPromotion.from, pendingPromotion.to, type)}
+                    className="flex flex-col items-center justify-center p-3 rounded-xl border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-500/20 hover:border-cyan-400 transition-all group"
+                  >
+                    <IconComponent className="text-2xl text-cyan-400 group-hover:scale-110 group-hover:text-cyan-300 transition-transform mb-2" />
+                    <span className="text-[9px] font-mono font-bold text-cyan-300">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setPendingPromotion(null)}
+                className="mt-5 text-[10px] font-mono text-rose-400/80 hover:text-rose-300 uppercase tracking-wider"
+              >
+                Cancel Move
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
