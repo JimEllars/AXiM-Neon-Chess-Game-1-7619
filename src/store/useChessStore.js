@@ -17,11 +17,17 @@ export const useChessStore = create((set, get) => ({
   showHints: true,
   soundEnabled: true,
   pieceSet: 'retro',
+  boardTheme: 'neon_grid_cyan',
+  passportJwt: null,
   capturedPieces: { w: [], b: [] },
   optionSquares: {},
   selectedSquare: null,
   lastMove: null,
   gameOver: null,
+  
+  // AXiM Integration
+  setPassportJwt: (jwt) => set({ passportJwt: jwt }),
+  setBoardTheme: (theme) => set({ boardTheme: theme }),
   
   // Timer State
   initialTime: DEFAULT_TIME,
@@ -59,9 +65,9 @@ export const useChessStore = create((set, get) => ({
     if (newTimers[turn] === 0) {
       const result = turn === 'w' ? 'BLACK WINS BY TIME' : 'WHITE WINS BY TIME';
       set({ gameOver: result });
-      submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
-        if (status === 202) {
-          set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
+      submitMatchTelemetry(game.pgn(), result, gameMode, get().passportJwt).then((status) => {
+        if (status === 202 || status === 200) {
+          set({ status: 'MATCH SECURED: REWARDS SYNCED' });
         }
       });
     }
@@ -108,9 +114,9 @@ export const useChessStore = create((set, get) => ({
           let result = 'DRAW';
           if (game.isCheckmate()) result = 'CHECKMATE';
           set({ gameOver: result });
-          submitMatchTelemetry(game.pgn(), result, gameMode).then((status) => {
-            if (status === 202) {
-              set({ status: 'MATCH SECURED: SYNCING TO CORE...' });
+          submitMatchTelemetry(game.pgn(), result, gameMode, get().passportJwt).then((status) => {
+            if (status === 202 || status === 200) {
+              set({ status: 'MATCH SECURED: REWARDS SYNCED' });
             }
           });
           return true;

@@ -2,6 +2,7 @@ import React from 'react';
 import NeonBoard from './components/NeonBoard';
 import ChessHUD from './components/ChessHUD';
 import GameOverModal from './components/GameOverModal';
+import AximPassportHeader from './components/AximPassportHeader';
 import { motion } from 'framer-motion';
 
 function App() {
@@ -27,9 +28,9 @@ function App() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="w-full max-w-[900px] z-10 flex flex-col items-center"
+        className="w-full max-w-[950px] z-10 flex flex-col items-center"
       >
-        <div className="text-center mb-8 relative">
+        <div className="text-center mb-6 relative">
           <motion.h1 
             className="text-4xl sm:text-6xl font-black tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 via-cyan-500 to-blue-800 neon-text-cyan font-mono uppercase italic"
             animate={{ skewX: [-1, 1, -1] }}
@@ -40,11 +41,14 @@ function App() {
           <div className="flex items-center justify-center gap-6 mt-3">
             <div className="h-[1px] flex-1 max-w-[100px] bg-gradient-to-r from-transparent to-cyan-500/50"></div>
             <p className="text-cyan-500/60 font-mono text-[10px] tracking-[0.4em] uppercase whitespace-nowrap">
-              Secure Tactical Interface v1.2.0
+              AXiM Ecosystem Connected Interface v1.3.0
             </p>
             <div className="h-[1px] flex-1 max-w-[100px] bg-gradient-to-l from-transparent to-cyan-500/50"></div>
           </div>
         </div>
+
+        {/* AXiM Passport & Unified Economy Balance Header */}
+        <AximPassportHeader />
 
         <div className="w-full flex flex-col items-center">
           <NeonBoard />

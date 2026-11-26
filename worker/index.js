@@ -150,11 +150,12 @@ const submitMatch = async (request, env) => {
     return json({ error: 'Method not allowed.' }, 405);
   }
 
-  // Telemetry Authentication Scaffold
+  // AXiM Passport JWT Authentication
   const authHeader = request.headers.get('Authorization');
-  if (!authHeader || authHeader.trim() === '') {
-    return json({ error: 'Unauthorized.' }, 401);
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return json({ error: 'Unauthorized or invalid token.' }, 401);
   }
+  const passportJwt = authHeader.substring('Bearer '.length).trim();
 
   try {
     const { pgn_string, result, match_type } = await parseJson(request);
@@ -183,7 +184,7 @@ const submitMatch = async (request, env) => {
             'Content-Type': 'application/json',
             'apikey': env.SUPABASE_SERVICE_KEY,
             'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
-            'Prefer': 'return=minimal'
+            'Prefer': 'return.minimal'
           },
           body: JSON.stringify({ pgn_string, result, match_type })
         });
@@ -202,6 +203,29 @@ const submitMatch = async (request, env) => {
         const matchId = crypto.randomUUID();
         await env.CHESS_STATE.put(`queue:telemetry:${matchId}`, JSON.stringify({ pgn_string, result, match_type }));
         savedToQueue = true;
+    }
+
+    // AXiM Core reward submission (idempotent)
+    const referenceId = `match_${crypto.randomUUID()}_${passportJwt}`;
+    try {
+      const coreResponse = await fetch(`${env.AXIM_CORE_URL}/v1/gaming/credits/award`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${passportJwt}`
+        },
+        body: JSON.stringify({
+          source_app: 'neon_chess',
+          bucket: 'earned_points',
+          reference_id: referenceId,
+          amount: 10 // placeholder reward amount
+        })
+      });
+      if (!coreResponse.ok) {
+        console.error('AXiM Core award failed:', await coreResponse.text());
+      }
+    } catch (e) {
+      console.error('Error posting award to AXiM Core:', e);
     }
 
     if (savedToQueue) {

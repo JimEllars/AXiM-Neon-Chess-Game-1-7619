@@ -39,15 +39,17 @@ export const fetchComputerMove = async (fen, difficulty = 'normal') => {
   }
 };
 
-export const submitMatchTelemetry = async (pgn, result, matchType = 'pve_free') => {
+export const submitMatchTelemetry = async (pgn, result, matchType = 'pve_free', passportJwt = null) => {
   console.log(`[EDGE GATEWAY] Submitting Match: ${result}`);
+
+  const authHeader = passportJwt ? `Bearer ${passportJwt}` : 'Bearer AXIM_TEMP_DEV_TOKEN';
 
   try {
     const response = await fetch(apiUrl('submit-match'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer AXIM_TEMP_DEV_TOKEN'
+        'Authorization': authHeader
       },
       body: JSON.stringify({
         pgn_string: pgn,
