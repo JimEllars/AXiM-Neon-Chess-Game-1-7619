@@ -3,14 +3,9 @@ import { useChessStore } from '../store/useChessStore';
 import { motion } from 'framer-motion';
 
 export default function NeonTimer({ color }) {
-  const { timers, game, tickTimers, isPaused } = useChessStore();
+  const { timers, game, isPaused } = useChessStore();
   const time = timers[color];
   const isTurn = game.turn() === color;
-
-  useEffect(() => {
-    const interval = setInterval(() => tickTimers(), 1000);
-    return () => clearInterval(interval);
-  }, [tickTimers]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);

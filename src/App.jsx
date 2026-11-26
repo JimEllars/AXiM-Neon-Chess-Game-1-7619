@@ -3,9 +3,19 @@ import NeonBoard from './components/NeonBoard';
 import ChessHUD from './components/ChessHUD';
 import GameOverModal from './components/GameOverModal';
 import AximPassportHeader from './components/AximPassportHeader';
+import { useChessStore } from './store/useChessStore';
 import { motion } from 'framer-motion';
 
 function App() {
+  const tickTimers = useChessStore((state) => state.tickTimers);
+
+  React.useEffect(() => {
+    const timerInterval = setInterval(() => {
+      tickTimers();
+    }, 1000);
+    return () => clearInterval(timerInterval);
+  }, [tickTimers]);
+
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-start md:justify-center p-4 py-20 md:py-0 overflow-x-hidden">
       

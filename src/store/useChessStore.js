@@ -148,7 +148,30 @@ export const useChessStore = create((set, get) => ({
     return false;
   },
 
+  resignGame: (playerColor) => {
+    const { game, gameMode, passportJwt } = get();
+    if (get().gameOver) return;
+    const resigningSide = playerColor || game.turn();
+    const result = resigningSide === 'w' ? 'BLACK WINS (RESIGNATION)' : 'WHITE WINS (RESIGNATION)';
+    set({ gameOver: result, isPaused: true, status: 'MATCH CONCLUDED: RESIGNATION' });
+    submitMatchTelemetry(game.pgn(), result, gameMode, passportJwt).then((status) => {
+      if (status === 202 || status === 200) {
+        set({ status: 'MATCH SECURED: REWARDS SYNCED' });
+      }
+    });
+  },
 
+  offerDraw: () => {
+    const { game, gameMode, passportJwt } = get();
+    if (get().gameOver) return;
+    const result = 'AGREED DRAW';
+    set({ gameOver: result, isPaused: true, status: 'MATCH CONCLUDED: AGREED DRAW' });
+    submitMatchTelemetry(game.pgn(), result, gameMode, passportJwt).then((status) => {
+      if (status === 202 || status === 200) {
+        set({ status: 'MATCH SECURED: REWARDS SYNCED' });
+      }
+    });
+  },
 
   resetGame: () => {
     const { initialTime } = get();

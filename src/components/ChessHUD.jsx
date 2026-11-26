@@ -13,13 +13,13 @@ import TacticalDisplay from './TacticalDisplay';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 
-const { FiZap, FiZapOff, FiRefreshCcw, FiVolume2, FiVolumeX, FiInfo } = FiIcons;
+const { FiZap, FiZapOff, FiRefreshCcw, FiVolume2, FiVolumeX, FiInfo, FiFlag, FiShield } = FiIcons;
 
 export default function ChessHUD() {
   const { 
-    status, isComputerThinking, resetGame, game, 
+    status, resetGame, game, 
     showHints, toggleHints, soundEnabled, toggleSound,
-    capturedPieces, gameMode 
+    capturedPieces, gameMode, resignGame, offerDraw, gameOver
   } = useChessStore();
   
   return (
@@ -96,15 +96,36 @@ export default function ChessHUD() {
               </button>
             </div>
           </div>
-          <div className="flex items-end">
-            <button 
-              onClick={resetGame}
-              className="w-full flex items-center justify-center gap-3 py-3 bg-rose-600/5 border border-rose-600/30 text-rose-500 font-mono text-xs font-bold uppercase tracking-[0.3em] hover:bg-rose-600 hover:text-black transition-all rounded-xl group overflow-hidden relative"
-            >
-              <div className="absolute inset-0 bg-rose-600/10 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
-              <SafeIcon icon={FiRefreshCcw} className="group-hover:rotate-180 transition-transform duration-700 relative z-10" />
-              <span className="relative z-10">Reboot Matrix</span>
-            </button>
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] text-cyan-500/50 uppercase tracking-[0.2em] font-mono">Match Actions</span>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => resignGame()}
+                disabled={!!gameOver}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-rose-950/20 border border-rose-500/40 text-rose-400 font-mono text-[10px] font-bold uppercase tracking-wider hover:bg-rose-900/40 hover:text-rose-200 transition-all rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Concede match and finalize telemetry"
+              >
+                <SafeIcon icon={FiFlag} className="text-xs" />
+                <span>FORFEIT</span>
+              </button>
+              <button 
+                onClick={() => offerDraw()}
+                disabled={!!gameOver}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-amber-950/20 border border-amber-500/40 text-amber-400 font-mono text-[10px] font-bold uppercase tracking-wider hover:bg-amber-900/40 hover:text-amber-200 transition-all rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Conclude match with an agreed draw"
+              >
+                <SafeIcon icon={FiShield} className="text-xs" />
+                <span>DRAW OFFER</span>
+              </button>
+              <button 
+                onClick={resetGame}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-cyan-950/30 border border-cyan-500/40 text-cyan-300 font-mono text-[10px] font-bold uppercase tracking-wider hover:bg-cyan-500/20 hover:text-cyan-100 transition-all rounded-lg group"
+                title="Restart fresh game"
+              >
+                <SafeIcon icon={FiRefreshCcw} className="group-hover:rotate-180 transition-transform duration-700 text-xs" />
+                <span>RESET</span>
+              </button>
+            </div>
           </div>
         </div>
 
