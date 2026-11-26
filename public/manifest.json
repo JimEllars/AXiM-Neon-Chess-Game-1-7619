@@ -1,0 +1,18 @@
+{
+  "short_name": "Neon Chess",
+  "name": "AXiM Neon Chess",
+  "icons": [
+    {
+      "src": "https://wp.axim.us.com/wp-content/uploads/2026/08/AXiM-Development-1200x628-layout1284-infrastructure-axim-axim-axim-1l7q5v7.webp",
+      "type": "image/webp",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "./",
+  "background_color": "#05070f",
+  "theme_color": "#00f0ff",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "./",
+  "description": "Tactical Edge Neon Chess connected to the AXiM Ecosystem with Passport auth and rewards."
+}

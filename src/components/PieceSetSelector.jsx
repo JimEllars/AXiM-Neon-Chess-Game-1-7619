@@ -1,5 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useChessStore } from '../store/useChessStore';
+import CosmeticLoadoutModal from './CosmeticLoadoutModal';
+import * as FiIcons from 'react-icons/fi';
+import SafeIcon from '../common/SafeIcon';
+
+const { FiSliders } = FiIcons;
 
 const sets = [
   { id: 'retro', label: 'RETRO', desc: '80s Synth' },
@@ -10,10 +15,21 @@ const sets = [
 
 export default function PieceSetSelector() {
   const { pieceSet, setPieceSet } = useChessStore();
+  const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[10px] text-cyan-500/50 uppercase tracking-[0.2em] font-mono">Visual Identity</span>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-cyan-500/50 uppercase tracking-[0.2em] font-mono">Visual Identity</span>
+        <button
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-1 text-[10px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-wider"
+        >
+          <SafeIcon icon={FiSliders} className="text-xs" />
+          <span>AXiM Loadout</span>
+        </button>
+      </div>
+
       <div className="flex gap-1.5">
         {sets.map((set) => (
           <button
@@ -30,6 +46,8 @@ export default function PieceSetSelector() {
           </button>
         ))}
       </div>
+
+      <CosmeticLoadoutModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

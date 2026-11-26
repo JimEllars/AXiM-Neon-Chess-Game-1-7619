@@ -10,9 +10,20 @@
     <meta property="og:description" content="Play AXiM Neon Chess against the edge-powered computer opponent." />
     <meta property="og:type" content="website" />
     <title>AXiM Neon Chess</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#00f0ff" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.log('[PWA] Service worker registration failed:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
